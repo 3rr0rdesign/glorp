@@ -950,38 +950,24 @@ export default function Home() {
      NEW — ONE BUTTON X SHARE
      ========================================================= */
 
+ 
   function shareTicket() {
-    if (!shareUrl) {
-      return;
-    }
-
-    /*
-      EDIT CAPTION HERE
-    */
-    const text =
-      "i have sent my transmission request @glorp 👽";
-
-    /*
-      The unique GLORP page is added to the post.
-
-      X then scrapes that page and finds the
-      personalized twitter:image.
-    */
-    const xUrl =
-    `https://x.com/intent/tweet?text=${encodeURIComponent(
-        text,
-      )}&url=${encodeURIComponent(
-        shareUrl,
-      )}`;
-
-    /*
-      NO navigator.share()
-      NO phone share sheet.
-
-      Goes directly to X.
-    */
-    window.location.href = xUrl;
+  if (!shareUrl) {
+    return;
   }
+
+  const text =
+    "i have sent my transmission request @glorpRBH 👽";
+
+  const xUrl =
+    `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+      text
+    )}&url=${encodeURIComponent(
+      shareUrl
+    )}`;
+
+  window.location.href = xUrl;
+}
 
   /* =========================================================
      UI
