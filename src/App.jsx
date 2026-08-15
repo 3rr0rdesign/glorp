@@ -7,11 +7,6 @@ const SUPABASE_FUNCTION_URL =
   import.meta.env.VITE_SUPABASE_FUNCTION_URL ??
   "https://zdqpxpqjpqhnnnhclwsf.supabase.co/functions/v1/submit-transmission";
 
-/*
-  NEW:
-  This function will receive the generated PNG and return
-  a public URL with Twitter/X card meta tags.
-*/
 const SUPABASE_SHARE_FUNCTION_URL =
   import.meta.env.VITE_SUPABASE_SHARE_FUNCTION_URL ??
   "https://zdqpxpqjpqhnnnhclwsf.supabase.co/functions/v1/create-share";
@@ -29,6 +24,7 @@ const TICKET_HANDLE_ROTATION = 0;
 const TICKET_HANDLE_SIZE = 5.2;
 const TICKET_HANDLE_COLOR = "#baff00";
 const TICKET_HANDLE_BLEND_MODE = "screen";
+
 const TRANSMISSION_LINES = [
   "dialing glorp...",
   "checking if you're secretly a dog...",
@@ -160,13 +156,17 @@ const Prefix = styled.span`
 const Input = styled.input`
   width: 100%;
   min-height: 56px;
+
   padding: ${({ $prefixed }) =>
     $prefixed ? "0 16px 0 36px" : "0 16px"};
+
   border: 2px solid #0a0a0a;
   border-radius: 16px;
   outline: none;
+
   background: #fff;
   color: #0a0a0a;
+
   font-size: 16px;
   font-weight: 700;
 
@@ -182,11 +182,15 @@ const Input = styled.input`
 const Button = styled.button`
   width: 100%;
   min-height: 56px;
+
   border: 2px solid #0a0a0a;
   border-radius: 16px;
+
   background: #0a0a0a;
   color: #d8ff00;
+
   cursor: pointer;
+
   font-size: 16px;
   font-weight: 1000;
 
@@ -211,6 +215,29 @@ const Button = styled.button`
   }
 `;
 
+const BackButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  margin: 0 0 12px;
+  padding: 0;
+
+  border: 0;
+  background: transparent;
+  color: #0a0a0a;
+
+  cursor: pointer;
+
+  font-size: 15px;
+  line-height: 1;
+  font-weight: 900;
+
+  &:hover {
+    opacity: 0.6;
+  }
+`;
+
 const ErrorText = styled.p`
   margin: -2px 0 0;
   color: #b42318;
@@ -231,22 +258,30 @@ const loadBar = keyframes`
 
 const TransmittingCard = styled(Card)`
   min-height: min(68svh, 570px);
+
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+
   gap: 24px;
+
   padding: 24px 20px 22px;
 `;
 
 const UfoStage = styled.div`
   position: relative;
+
   width: 100%;
   aspect-ratio: 1 / 1;
+
   display: grid;
   place-items: center;
+
   overflow: hidden;
+
   border: 2px solid #0a0a0a;
   border-radius: 22px;
+
   background: #efffa8;
 `;
 
@@ -254,36 +289,48 @@ const UfoImage = styled.img`
   position: absolute;
   inset: 0;
   z-index: 1;
+
   display: block;
+
   width: 100%;
   height: 100%;
+
   object-fit: cover;
   object-position: center;
 `;
 
 const TransmittingTitle = styled.h1`
   min-height: 2.2em;
+
   margin: 0 0 14px;
+
   font-size: clamp(27px, 8vw, 38px);
   line-height: 1.05;
   letter-spacing: -0.045em;
   font-weight: 1000;
+
   text-align: center;
 `;
 
 const ProgressTrack = styled.div`
   height: 10px;
+
   border: 2px solid #0a0a0a;
   border-radius: 999px;
+
   overflow: hidden;
+
   background: #fff;
 `;
 
 const Progress = styled.div`
   width: 100%;
   height: 100%;
+
   transform-origin: left center;
+
   background: #d8ff00;
+
   animation: ${loadBar} 3s linear forwards;
 `;
 
@@ -297,6 +344,7 @@ const TicketCard = styled(Card)`
 
 const TicketHeading = styled.h1`
   margin: 0;
+
   font-size: clamp(36px, 10vw, 48px);
   line-height: 0.95;
   letter-spacing: -0.055em;
@@ -305,6 +353,7 @@ const TicketHeading = styled.h1`
 
 const TicketCopy = styled.p`
   margin: 10px 0 18px;
+
   font-size: 15px;
   line-height: 1.35;
   font-weight: 700;
@@ -312,16 +361,20 @@ const TicketCopy = styled.p`
 
 const TicketVisual = styled.div`
   position: relative;
+
   width: 100%;
+
   overflow: hidden;
 
   border: 2px solid #0a0a0a;
   border-radius: 20px;
+
   background: #0a0a0a;
 `;
 
 const TicketImage = styled.img`
   position: relative;
+
   display: block;
 
   width: 100%;
@@ -333,16 +386,22 @@ const TicketImage = styled.img`
 const TicketFallback = styled.div`
   position: absolute;
   inset: 0;
+
   display: grid;
   place-items: center;
+
   padding: 24px;
+
   background: #d8ff00;
   color: #0a0a0a;
+
   text-align: center;
+
   font-size: clamp(36px, 11vw, 72px);
   line-height: 0.86;
   font-weight: 1000;
   letter-spacing: -0.07em;
+
   text-transform: uppercase;
 `;
 
@@ -360,6 +419,7 @@ const TicketHandle = styled.div`
   width: 88%;
 
   color: ${TICKET_HANDLE_COLOR};
+
   mix-blend-mode: ${TICKET_HANDLE_BLEND_MODE};
 
   text-align: center;
@@ -377,12 +437,14 @@ const TicketHandle = styled.div`
   letter-spacing: -0.035em;
 
   text-shadow: none;
+
   overflow-wrap: anywhere;
 `;
 
 const Actions = styled.div`
   display: grid;
   gap: 8px;
+
   margin-top: 14px;
 `;
 
@@ -394,14 +456,19 @@ const sleep = (ms) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
 const cleanHandle = (value) =>
-  value.trim().replace(/^@+/, "").toLowerCase();
+  value
+    .trim()
+    .replace(/^@+/, "")
+    .toLowerCase();
 
 function isEvmAddress(value) {
   return /^0x[a-fA-F0-9]{40}$/.test(value.trim());
 }
 
 function isXHandle(value) {
-  return /^[a-zA-Z0-9_]{1,15}$/.test(cleanHandle(value));
+  return /^[a-zA-Z0-9_]{1,15}$/.test(
+    cleanHandle(value),
+  );
 }
 
 function loadImage(source) {
@@ -420,16 +487,25 @@ function loadImage(source) {
    ========================================================= */
 
 async function makeTicket(handle) {
-  const base = await loadImage("/glorpbg.png");
+  const base =
+    await loadImage("/glorpbg-v2.png");
 
- const canvas = document.createElement("canvas");
+  const canvas =
+    document.createElement("canvas");
 
-canvas.width = base?.naturalWidth || 1200;
-canvas.height = base?.naturalHeight || 600;
-  const context = canvas.getContext("2d");
+  canvas.width =
+    base?.naturalWidth || 1200;
+
+  canvas.height =
+    base?.naturalHeight || 600;
+
+  const context =
+    canvas.getContext("2d");
 
   if (!context) {
-    throw new Error("Your browser could not build the ticket.");
+    throw new Error(
+      "Your browser could not build the ticket.",
+    );
   }
 
   if (base) {
@@ -455,7 +531,9 @@ canvas.height = base?.naturalHeight || 600;
     context.textBaseline = "middle";
 
     context.font =
-      `900 ${Math.round(canvas.width * 0.095)}px Arial`;
+      `900 ${Math.round(
+        canvas.width * 0.095,
+      )}px Arial`;
 
     context.fillText(
       "GLORP TICKET",
@@ -464,9 +542,11 @@ canvas.height = base?.naturalHeight || 600;
     );
   }
 
-  const fontSize = Math.round(
-    canvas.width * (TICKET_HANDLE_SIZE / 100),
-  );
+  const fontSize =
+    Math.round(
+      canvas.width *
+        (TICKET_HANDLE_SIZE / 100),
+    );
 
   context.textAlign = "center";
   context.textBaseline = "middle";
@@ -474,7 +554,8 @@ canvas.height = base?.naturalHeight || 600;
   context.font =
     `900 ${fontSize}px "Arial Rounded MT Bold", "Trebuchet MS", Arial, sans-serif`;
 
-  context.fillStyle = TICKET_HANDLE_COLOR;
+  context.fillStyle =
+    TICKET_HANDLE_COLOR;
 
   context.save();
 
@@ -482,12 +563,16 @@ canvas.height = base?.naturalHeight || 600;
     TICKET_HANDLE_BLEND_MODE;
 
   context.translate(
-    canvas.width * (TICKET_HANDLE_X / 100),
-    canvas.height * (TICKET_HANDLE_Y / 100),
+    canvas.width *
+      (TICKET_HANDLE_X / 100),
+
+    canvas.height *
+      (TICKET_HANDLE_Y / 100),
   );
 
   context.rotate(
-    TICKET_HANDLE_ROTATION * (Math.PI / 180),
+    TICKET_HANDLE_ROTATION *
+      (Math.PI / 180),
   );
 
   context.fillText(
@@ -498,56 +583,72 @@ canvas.height = base?.naturalHeight || 600;
 
   context.restore();
 
-  return new Promise((resolve, reject) => {
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) {
-          reject(
-            new Error(
-              "Your ticket could not be exported.",
+  return new Promise(
+    (resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(
+              new Error(
+                "Your ticket could not be exported.",
+              ),
+            );
+
+            return;
+          }
+
+          resolve(
+            new File(
+              [blob],
+              `glorp-ticket-${handle}.png`,
+              {
+                type: "image/png",
+              },
             ),
           );
+        },
 
-          return;
-        }
-
-        resolve(
-          new File(
-            [blob],
-            `glorp-ticket-${handle}.png`,
-            {
-              type: "image/png",
-            },
-          ),
-        );
-      },
-      "image/png",
-      1,
-    );
-  });
+        "image/png",
+        1,
+      );
+    },
+  );
 }
 
 /* =========================================================
-   NEW — CREATE PUBLIC X SHARE PAGE
+   CREATE PUBLIC X SHARE PAGE
    ========================================================= */
 
-async function createSharePage(handle, ticketFile) {
-  const formData = new FormData();
+async function createSharePage(
+  handle,
+  ticketFile,
+) {
+  const formData =
+    new FormData();
 
-  formData.append("handle", handle);
-  formData.append("image", ticketFile);
-
-  const response = await fetch(
-    SUPABASE_SHARE_FUNCTION_URL,
-    {
-      method: "POST",
-      body: formData,
-    },
+  formData.append(
+    "handle",
+    handle,
   );
 
-  const body = await response
-    .json()
-    .catch(() => ({}));
+  formData.append(
+    "image",
+    ticketFile,
+  );
+
+  const response =
+    await fetch(
+      SUPABASE_SHARE_FUNCTION_URL,
+      {
+        method: "POST",
+        body: formData,
+      },
+    );
+
+  const body =
+    await response
+      .json()
+      .catch(() => ({}));
 
   if (!response.ok) {
     throw new Error(
@@ -570,22 +671,30 @@ async function createSharePage(handle, ticketFile) {
    ========================================================= */
 
 export default function Home() {
-  const [screen, setScreen] =
-    useState("form");
+  const [
+    screen,
+    setScreen,
+  ] = useState("form");
 
-  const [wallet, setWallet] =
-    useState("");
+  const [
+    wallet,
+    setWallet,
+  ] = useState("");
 
-  const [handle, setHandle] =
-    useState("");
+  const [
+    handle,
+    setHandle,
+  ] = useState("");
 
   const [
     confirmedHandle,
     setConfirmedHandle,
   ] = useState("");
 
-  const [error, setError] =
-    useState("");
+  const [
+    error,
+    setError,
+  ] = useState("");
 
   const [
     imageMissing,
@@ -597,12 +706,10 @@ export default function Home() {
     setTransmissionLine,
   ] = useState(0);
 
-  /*
-    NEW:
-    This becomes the unique public page X will scrape.
-  */
-  const [shareUrl, setShareUrl] =
-    useState("");
+  const [
+    shareUrl,
+    setShareUrl,
+  ] = useState("");
 
   const [
     ticketPreparing,
@@ -635,8 +742,9 @@ export default function Home() {
 
     function handlePopState(event) {
       const nextScreen =
-        event.state?.[HISTORY_KEY] ===
-        "ticket"
+        event.state?.[
+          HISTORY_KEY
+        ] === "ticket"
           ? "ticket"
           : "form";
 
@@ -667,7 +775,9 @@ export default function Home() {
      ========================================================= */
 
   useEffect(() => {
-    if (screen !== "transmitting") {
+    if (
+      screen !== "transmitting"
+    ) {
       return undefined;
     }
 
@@ -677,7 +787,8 @@ export default function Home() {
           (current) =>
             Math.min(
               current + 1,
-              TRANSMISSION_LINES.length - 1,
+              TRANSMISSION_LINES.length -
+                1,
             ),
         );
       }, 950);
@@ -692,7 +803,9 @@ export default function Home() {
 
   useEffect(() => {
     const saved =
-      localStorage.getItem(STORAGE_KEY);
+      localStorage.getItem(
+        STORAGE_KEY,
+      );
 
     if (!saved) return;
 
@@ -723,6 +836,7 @@ export default function Home() {
               {
                 ...(window.history
                   .state ?? {}),
+
                 [HISTORY_KEY]:
                   "ticket",
               },
@@ -741,8 +855,7 @@ export default function Home() {
   }, []);
 
   /* =========================================================
-     NEW:
-     BUILD IMAGE + SHARE PAGE IN BACKGROUND
+     BUILD IMAGE + SHARE PAGE
      ========================================================= */
 
   useEffect(() => {
@@ -760,9 +873,6 @@ export default function Home() {
 
     async function prepareShare() {
       try {
-        /*
-          1. Generate personalized PNG.
-        */
         const ticket =
           await makeTicket(
             confirmedHandle,
@@ -770,11 +880,6 @@ export default function Home() {
 
         if (cancelled) return;
 
-        /*
-          2. Upload it to our Edge Function.
-             Function returns the unique
-             publicly shareable URL.
-        */
         const newShareUrl =
           await createSharePage(
             confirmedHandle,
@@ -819,16 +924,19 @@ export default function Home() {
 
   const normalizedHandle =
     useMemo(
-      () => cleanHandle(handle),
+      () =>
+        cleanHandle(handle),
       [handle],
     );
 
   const canSubmit =
-    isXHandle(normalizedHandle) &&
+    isXHandle(
+      normalizedHandle,
+    ) &&
     isEvmAddress(wallet);
 
   /* =========================================================
-     SUBMIT TO SUPABASE
+     SUBMIT TRANSMISSION
      ========================================================= */
 
   async function submitTransmission(
@@ -850,26 +958,27 @@ export default function Home() {
     setScreen("transmitting");
 
     try {
-      const request = fetch(
-        SUPABASE_FUNCTION_URL,
-        {
-          method: "POST",
+      const request =
+        fetch(
+          SUPABASE_FUNCTION_URL,
+          {
+            method: "POST",
 
-          headers: {
-            "Content-Type":
-              "application/json",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body: JSON.stringify({
+              wallet: wallet
+                .trim()
+                .toLowerCase(),
+
+              twitterHandle:
+                normalizedHandle,
+            }),
           },
-
-          body: JSON.stringify({
-            wallet: wallet
-              .trim()
-              .toLowerCase(),
-
-            twitterHandle:
-              normalizedHandle,
-          }),
-        },
-      );
+        );
 
       const [response] =
         await Promise.all([
@@ -884,7 +993,8 @@ export default function Home() {
 
       if (!response.ok) {
         if (
-          response.status === 409 &&
+          response.status ===
+            409 &&
           body.code ===
             "TWITTER_EXISTS"
         ) {
@@ -909,6 +1019,7 @@ export default function Home() {
 
       localStorage.setItem(
         STORAGE_KEY,
+
         JSON.stringify({
           handle:
             normalizedHandle,
@@ -930,6 +1041,7 @@ export default function Home() {
           {
             ...(window.history
               .state ?? {}),
+
             [HISTORY_KEY]:
               "ticket",
           },
@@ -950,27 +1062,68 @@ export default function Home() {
   }
 
   /* =========================================================
-     NEW — ONE BUTTON X SHARE
+     BACK / RESET
      ========================================================= */
 
- 
-  function shareTicket() {
-  if (!shareUrl) {
-    return;
+  function goBackToForm() {
+    /*
+     * Important:
+     * remove the stored ticket so a fresh visit
+     * doesn't immediately reopen the ticket screen.
+     */
+    localStorage.removeItem(
+      STORAGE_KEY,
+    );
+
+    setConfirmedHandle("");
+    setHandle("");
+    setWallet("");
+    setShareUrl("");
+    setError("");
+    setImageMissing(false);
+    setTransmissionLine(0);
+    setTicketPreparing(false);
+
+    window.history.replaceState(
+      {
+        ...(window.history.state ??
+          {}),
+
+        [HISTORY_KEY]: "form",
+      },
+      "",
+    );
+
+    setScreen("form");
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   }
 
-  const text =
-    "i have sent my transmission request @glorpRBH 👽";
+  /* =========================================================
+     ONE BUTTON X SHARE
+     ========================================================= */
 
-  const xUrl =
-    `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-      text
-    )}&url=${encodeURIComponent(
-      shareUrl
-    )}`;
+  function shareTicket() {
+    if (!shareUrl) {
+      return;
+    }
 
-  window.location.href = xUrl;
-}
+    const text =
+      "i have sent my transmission request @glorpRBH 👽";
+
+    const xUrl =
+      `https://x.com/intent/tweet?text=${encodeURIComponent(
+        text,
+      )}&url=${encodeURIComponent(
+        shareUrl,
+      )}`;
+
+    window.location.href =
+      xUrl;
+  }
 
   /* =========================================================
      UI
@@ -983,9 +1136,7 @@ export default function Home() {
       <Page>
         <Shell>
           <Topbar>
-            <Wordmark>
-              
-            </Wordmark>
+            <Wordmark />
           </Topbar>
 
           {/* FORM */}
@@ -1021,22 +1172,27 @@ export default function Home() {
                       $prefixed
                       name="twitterHandle"
                       value={handle}
+
                       onChange={(
                         event,
                       ) =>
                         setHandle(
-                          event
-                            .target
+                          event.target
                             .value,
                         )
                       }
+
                       placeholder="yourhandle"
+
                       autoCapitalize="none"
                       autoCorrect="off"
+
                       spellCheck={
                         false
                       }
+
                       maxLength={16}
+
                       aria-invalid={
                         Boolean(
                           handle,
@@ -1054,23 +1210,29 @@ export default function Home() {
 
                   <Input
                     name="wallet"
+
                     value={wallet}
+
                     onChange={(
                       event,
                     ) =>
                       setWallet(
-                        event
-                          .target
+                        event.target
                           .value,
                       )
                     }
+
                     placeholder="0x..."
+
                     autoCapitalize="none"
                     autoCorrect="off"
+
                     spellCheck={
                       false
                     }
+
                     maxLength={42}
+
                     aria-invalid={
                       Boolean(
                         wallet,
@@ -1112,7 +1274,9 @@ export default function Home() {
               <UfoStage>
                 <UfoImage
                   src="/ringring.gif"
+
                   alt="Glorp calling from his spaceship"
+
                   onError={(
                     event,
                   ) => {
@@ -1144,6 +1308,18 @@ export default function Home() {
 
           {screen === "ticket" && (
             <TicketCard>
+
+              {/* NEW BACK BUTTON */}
+
+              <BackButton
+                type="button"
+                onClick={
+                  goBackToForm
+                }
+              >
+                ← back
+              </BackButton>
+
               <TicketHeading>
                 glorp said maybe.
               </TicketHeading>
@@ -1160,8 +1336,10 @@ export default function Home() {
                   </TicketFallback>
                 ) : (
                   <TicketImage
-                    src="/glorpbg.png"
+                    src="/glorpbg-v2.png"
+
                     alt={`GLORP ticket for @${confirmedHandle}`}
+
                     onError={() =>
                       setImageMissing(
                         true,
@@ -1178,9 +1356,11 @@ export default function Home() {
               <Actions>
                 <Button
                   type="button"
+
                   onClick={
                     shareTicket
                   }
+
                   disabled={
                     ticketPreparing ||
                     !shareUrl
@@ -1195,6 +1375,7 @@ export default function Home() {
               {error && (
                 <ErrorText
                   role="alert"
+
                   style={{
                     marginTop: 12,
                   }}
