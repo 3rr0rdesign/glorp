@@ -7,6 +7,15 @@ const SUPABASE_FUNCTION_URL =
   import.meta.env.VITE_SUPABASE_FUNCTION_URL ??
   "https://zdqpxpqjpqhnnnhclwsf.supabase.co/functions/v1/submit-transmission";
 
+/*
+  NEW:
+  This function will receive the generated PNG and return
+  a public URL with Twitter/X card meta tags.
+*/
+const SUPABASE_SHARE_FUNCTION_URL =
+  import.meta.env.VITE_SUPABASE_SHARE_FUNCTION_URL ??
+  "https://zdqpxpqjpqhnnnhclwsf.supabase.co/functions/v1/create-share";
+
 const STORAGE_KEY = "glorp-transmission-v1";
 const HISTORY_KEY = "glorp-screen";
 
@@ -19,8 +28,6 @@ const TICKET_HANDLE_Y = 63;
 const TICKET_HANDLE_ROTATION = 3;
 const TICKET_HANDLE_SIZE = 5.2;
 const TICKET_HANDLE_COLOR = "#347e4e";
-
-/* SCREEN BLENDING */
 const TICKET_HANDLE_BLEND_MODE = "multiply";
 
 const TRANSMISSION_LINES = [
@@ -183,6 +190,7 @@ const Button = styled.button`
   cursor: pointer;
   font-size: 16px;
   font-weight: 1000;
+
   transition:
     translate 120ms ease,
     box-shadow 120ms ease,
@@ -247,12 +255,9 @@ const UfoImage = styled.img`
   position: absolute;
   inset: 0;
   z-index: 1;
-
   display: block;
-
   width: 100%;
   height: 100%;
-
   object-fit: cover;
   object-position: center;
 `;
@@ -352,8 +357,6 @@ const TicketHandle = styled.div`
     rotate(${TICKET_HANDLE_ROTATION}deg);
 
   color: ${TICKET_HANDLE_COLOR};
-
-  /* SCREEN BLEND */
   mix-blend-mode: ${TICKET_HANDLE_BLEND_MODE};
 
   text-align: center;
@@ -409,7 +412,7 @@ function loadImage(source) {
 }
 
 /* =========================================================
-   GENERATE FINAL SHARE IMAGE
+   GENERATE FINAL TICKET IMAGE
    ========================================================= */
 
 async function makeTicket(handle) {
@@ -426,9 +429,6 @@ async function makeTicket(handle) {
     throw new Error("Your browser could not build the ticket.");
   }
 
-  /*
-   * BACKGROUND
-   */
   if (base) {
     context.drawImage(
       base,
@@ -439,6 +439,7 @@ async function makeTicket(handle) {
     );
   } else {
     context.fillStyle = "#d8ff00";
+
     context.fillRect(
       0,
       0,
@@ -460,9 +461,6 @@ async function makeTicket(handle) {
     );
   }
 
-  /*
-   * HANDLE
-   */
   const fontSize = Math.round(
     canvas.width * (TICKET_HANDLE_SIZE / 100),
   );
@@ -477,10 +475,6 @@ async function makeTicket(handle) {
 
   context.save();
 
-  /*
-   * REAL SCREEN BLENDING
-   * This makes the exported PNG match the website.
-   */
   context.globalCompositeOperation =
     TICKET_HANDLE_BLEND_MODE;
 
@@ -501,9 +495,6 @@ async function makeTicket(handle) {
 
   context.restore();
 
-  /*
-   * PNG FILE
-   */
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
@@ -513,6 +504,7 @@ async function makeTicket(handle) {
               "Your ticket could not be exported.",
             ),
           );
+
           return;
         }
 
@@ -533,40 +525,86 @@ async function makeTicket(handle) {
 }
 
 /* =========================================================
+   NEW — CREATE PUBLIC X SHARE PAGE
+   ========================================================= */
+
+async function createSharePage(handle, ticketFile) {
+  const formData = new FormData();
+
+  formData.append("handle", handle);
+  formData.append("image", ticketFile);
+
+  const response = await fetch(
+    SUPABASE_SHARE_FUNCTION_URL,
+    {
+      method: "POST",
+      body: formData,
+    },
+  );
+
+  const body = await response
+    .json()
+    .catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(
+      body.message ||
+        "could not prepare your X post.",
+    );
+  }
+
+  if (!body.shareUrl) {
+    throw new Error(
+      "share page URL was not returned.",
+    );
+  }
+
+  return body.shareUrl;
+}
+
+/* =========================================================
    COMPONENT
    ========================================================= */
 
 export default function Home() {
-  const [screen, setScreen] = useState("form");
+  const [screen, setScreen] =
+    useState("form");
 
-  const [wallet, setWallet] = useState("");
-  const [handle, setHandle] = useState("");
-
-  const [confirmedHandle, setConfirmedHandle] =
+  const [wallet, setWallet] =
     useState("");
 
-  const [error, setError] = useState("");
+  const [handle, setHandle] =
+    useState("");
 
-  const [imageMissing, setImageMissing] =
-    useState(false);
+  const [
+    confirmedHandle,
+    setConfirmedHandle,
+  ] = useState("");
 
-  const [transmissionLine, setTransmissionLine] =
-    useState(0);
+  const [error, setError] =
+    useState("");
 
-  const [shareBusy, setShareBusy] =
-    useState(false);
+  const [
+    imageMissing,
+    setImageMissing,
+  ] = useState(false);
+
+  const [
+    transmissionLine,
+    setTransmissionLine,
+  ] = useState(0);
 
   /*
-   * PRE-GENERATED FILE.
-   *
-   * This is important because navigator.share needs to happen
-   * directly from the user's button click.
-   */
-  const [ticketFile, setTicketFile] =
-    useState(null);
+    NEW:
+    This becomes the unique public page X will scrape.
+  */
+  const [shareUrl, setShareUrl] =
+    useState("");
 
-  const [ticketPreparing, setTicketPreparing] =
-    useState(false);
+  const [
+    ticketPreparing,
+    setTicketPreparing,
+  ] = useState(false);
 
   /* =========================================================
      HISTORY
@@ -594,7 +632,8 @@ export default function Home() {
 
     function handlePopState(event) {
       const nextScreen =
-        event.state?.[HISTORY_KEY] === "ticket"
+        event.state?.[HISTORY_KEY] ===
+        "ticket"
           ? "ticket"
           : "form";
 
@@ -604,7 +643,7 @@ export default function Home() {
       if (nextScreen === "form") {
         setWallet("");
         setHandle("");
-        setTicketFile(null);
+        setShareUrl("");
       }
     }
 
@@ -629,14 +668,16 @@ export default function Home() {
       return undefined;
     }
 
-    const timer = window.setInterval(() => {
-      setTransmissionLine((current) =>
-        Math.min(
-          current + 1,
-          TRANSMISSION_LINES.length - 1,
-        ),
-      );
-    }, 950);
+    const timer =
+      window.setInterval(() => {
+        setTransmissionLine(
+          (current) =>
+            Math.min(
+              current + 1,
+              TRANSMISSION_LINES.length - 1,
+            ),
+        );
+      }, 950);
 
     return () =>
       window.clearInterval(timer);
@@ -653,17 +694,22 @@ export default function Home() {
     if (!saved) return;
 
     try {
-      const parsed = JSON.parse(saved);
+      const parsed =
+        JSON.parse(saved);
 
       if (
         parsed.handle &&
         isXHandle(parsed.handle)
       ) {
         const savedHandle =
-          cleanHandle(parsed.handle);
+          cleanHandle(
+            parsed.handle,
+          );
 
         queueMicrotask(() => {
-          setConfirmedHandle(savedHandle);
+          setConfirmedHandle(
+            savedHandle,
+          );
 
           if (
             window.history.state?.[
@@ -672,9 +718,10 @@ export default function Home() {
           ) {
             window.history.pushState(
               {
-                ...(window.history.state ??
-                  {}),
-                [HISTORY_KEY]: "ticket",
+                ...(window.history
+                  .state ?? {}),
+                [HISTORY_KEY]:
+                  "ticket",
               },
               "",
             );
@@ -684,12 +731,15 @@ export default function Home() {
         });
       }
     } catch {
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(
+        STORAGE_KEY,
+      );
     }
   }, []);
 
   /* =========================================================
-     BUILD TICKET BEFORE USER PRESSES SHARE
+     NEW:
+     BUILD IMAGE + SHARE PAGE IN BACKGROUND
      ========================================================= */
 
   useEffect(() => {
@@ -702,43 +752,73 @@ export default function Home() {
 
     let cancelled = false;
 
-    setTicketFile(null);
+    setShareUrl("");
     setTicketPreparing(true);
 
-    makeTicket(confirmedHandle)
-      .then((file) => {
+    async function prepareShare() {
+      try {
+        /*
+          1. Generate personalized PNG.
+        */
+        const ticket =
+          await makeTicket(
+            confirmedHandle,
+          );
+
         if (cancelled) return;
 
-        setTicketFile(file);
-      })
-      .catch((caught) => {
+        /*
+          2. Upload it to our Edge Function.
+             Function returns the unique
+             publicly shareable URL.
+        */
+        const newShareUrl =
+          await createSharePage(
+            confirmedHandle,
+            ticket,
+          );
+
+        if (cancelled) return;
+
+        setShareUrl(
+          newShareUrl,
+        );
+      } catch (caught) {
         if (cancelled) return;
 
         setError(
           caught instanceof Error
             ? caught.message
-            : "could not prepare your GLORP ticket.",
+            : "could not prepare your X post.",
         );
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) {
-          setTicketPreparing(false);
+          setTicketPreparing(
+            false,
+          );
         }
-      });
+      }
+    }
+
+    prepareShare();
 
     return () => {
       cancelled = true;
     };
-  }, [screen, confirmedHandle]);
+  }, [
+    screen,
+    confirmedHandle,
+  ]);
 
   /* =========================================================
      FORM VALIDATION
      ========================================================= */
 
-  const normalizedHandle = useMemo(
-    () => cleanHandle(handle),
-    [handle],
-  );
+  const normalizedHandle =
+    useMemo(
+      () => cleanHandle(handle),
+      [handle],
+    );
 
   const canSubmit =
     isXHandle(normalizedHandle) &&
@@ -748,7 +828,9 @@ export default function Home() {
      SUBMIT TO SUPABASE
      ========================================================= */
 
-  async function submitTransmission(event) {
+  async function submitTransmission(
+    event,
+  ) {
     event.preventDefault();
 
     setError("");
@@ -786,24 +868,18 @@ export default function Home() {
         },
       );
 
-      /*
-       * Wait minimum 3 seconds so the funny
-       * transmission screen is visible.
-       */
       const [response] =
         await Promise.all([
           request,
           sleep(3000),
         ]);
 
-      const body = await response
-        .json()
-        .catch(() => ({}));
+      const body =
+        await response
+          .json()
+          .catch(() => ({}));
 
       if (!response.ok) {
-        /*
-         * DUPLICATE X HANDLE
-         */
         if (
           response.status === 409 &&
           body.code ===
@@ -814,10 +890,9 @@ export default function Home() {
           );
         }
 
-        /*
-         * DUPLICATE WALLET
-         */
-        if (response.status === 409) {
+        if (
+          response.status === 409
+        ) {
           throw new Error(
             "that wallet already sent a signal.",
           );
@@ -832,7 +907,8 @@ export default function Home() {
       localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify({
-          handle: normalizedHandle,
+          handle:
+            normalizedHandle,
         }),
       );
 
@@ -849,9 +925,10 @@ export default function Home() {
       ) {
         window.history.pushState(
           {
-            ...(window.history.state ??
-              {}),
-            [HISTORY_KEY]: "ticket",
+            ...(window.history
+              .state ?? {}),
+            [HISTORY_KEY]:
+              "ticket",
           },
           "",
         );
@@ -870,147 +947,40 @@ export default function Home() {
   }
 
   /* =========================================================
-     SHARE TO X
+     NEW — ONE BUTTON X SHARE
      ========================================================= */
 
-  async function shareTicket() {
-    if (!ticketFile || shareBusy) {
+  function shareTicket() {
+    if (!shareUrl) {
       return;
     }
 
-    setError("");
-    setShareBusy(true);
-
     /*
-     * CHANGE YOUR X CAPTION HERE
-     */
+      EDIT CAPTION HERE
+    */
     const text =
       "i have sent my transmission request @glorp 👽";
 
-    const shareData = {
-      text,
-      files: [ticketFile],
-    };
+    /*
+      The unique GLORP page is added to the post.
 
-    try {
-      /*
-       * MOBILE:
-       *
-       * Sends the REAL PNG + caption into the
-       * phone's native share sheet.
-       *
-       * User taps X ->
-       * X receives the generated GLORP image.
-       */
-      const supportsNativeFileShare =
-        typeof navigator.share ===
-          "function" &&
-        (
-          typeof navigator.canShare !==
-            "function" ||
-          navigator.canShare({
-            files: [ticketFile],
-          })
-        );
+      X then scrapes that page and finds the
+      personalized twitter:image.
+    */
+    const xUrl =
+    `https://x.com/intent/tweet?text=${encodeURIComponent(
+        text,
+      )}&url=${encodeURIComponent(
+        shareUrl,
+      )}`;
 
-      if (supportsNativeFileShare) {
-        await navigator.share(
-          shareData,
-        );
+    /*
+      NO navigator.share()
+      NO phone share sheet.
 
-        return;
-      }
-
-      /*
-       * DESKTOP FALLBACK
-       *
-       * X Web Intent cannot accept an image directly.
-       *
-       * So:
-       * 1. Copy PNG to clipboard when supported.
-       * 2. Open X with caption already filled.
-       * 3. User only has to CTRL/CMD + V.
-       */
-
-      const xUrl =
-        `https://x.com/intent/post?text=${encodeURIComponent(
-          text,
-        )}`;
-
-      let copyPromise = null;
-
-      if (
-        navigator.clipboard &&
-        typeof ClipboardItem !==
-          "undefined"
-      ) {
-        try {
-          const clipboardItem =
-            new ClipboardItem({
-              "image/png":
-                ticketFile,
-            });
-
-          /*
-           * Start copying while we still have
-           * the user's click activation.
-           */
-          copyPromise =
-            navigator.clipboard.write([
-              clipboardItem,
-            ]);
-        } catch {
-          copyPromise = null;
-        }
-      }
-
-      /*
-       * Open X immediately so popup blockers
-       * don't kill it.
-       */
-      window.open(
-        xUrl,
-        "_blank",
-        "noopener,noreferrer",
-      );
-
-      if (copyPromise) {
-        try {
-          await copyPromise;
-
-          setError(
-            "image copied — paste it into X.",
-          );
-        } catch {
-          setError(
-            "X opened with your caption. attach the image manually on this browser.",
-          );
-        }
-      } else {
-        setError(
-          "X opened with your caption. mobile can attach the image automatically.",
-        );
-      }
-    } catch (caught) {
-      /*
-       * User simply closed the share sheet.
-       * Don't show an ugly error.
-       */
-      if (
-        caught instanceof DOMException &&
-        caught.name === "AbortError"
-      ) {
-        return;
-      }
-
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : "could not share the ticket.",
-      );
-    } finally {
-      setShareBusy(false);
-    }
+      Goes directly to X.
+    */
+    window.location.href = xUrl;
   }
 
   /* =========================================================
@@ -1034,13 +1004,14 @@ export default function Home() {
           {screen === "form" && (
             <FormCard>
               <Title>
-                glorp wants you to join
-                his spaceship
+                glorp wants you to
+                join his spaceship
               </Title>
 
               <Copy>
-                send your X and wallet.
-                he will think about it.
+                send your X and
+                wallet. he will
+                think about it.
               </Copy>
 
               <Form
@@ -1053,25 +1024,37 @@ export default function Home() {
                   your X
 
                   <InputWrap>
-                    <Prefix>@</Prefix>
+                    <Prefix>
+                      @
+                    </Prefix>
 
                     <Input
                       $prefixed
                       name="twitterHandle"
                       value={handle}
-                      onChange={(event) =>
+                      onChange={(
+                        event,
+                      ) =>
                         setHandle(
-                          event.target.value,
+                          event
+                            .target
+                            .value,
                         )
                       }
                       placeholder="yourhandle"
                       autoCapitalize="none"
                       autoCorrect="off"
-                      spellCheck={false}
+                      spellCheck={
+                        false
+                      }
                       maxLength={16}
                       aria-invalid={
-                        Boolean(handle) &&
-                        !isXHandle(handle)
+                        Boolean(
+                          handle,
+                        ) &&
+                        !isXHandle(
+                          handle,
+                        )
                       }
                     />
                   </InputWrap>
@@ -1083,32 +1066,46 @@ export default function Home() {
                   <Input
                     name="wallet"
                     value={wallet}
-                    onChange={(event) =>
+                    onChange={(
+                      event,
+                    ) =>
                       setWallet(
-                        event.target.value,
+                        event
+                          .target
+                          .value,
                       )
                     }
                     placeholder="0x..."
                     autoCapitalize="none"
                     autoCorrect="off"
-                    spellCheck={false}
+                    spellCheck={
+                      false
+                    }
                     maxLength={42}
                     aria-invalid={
-                      Boolean(wallet) &&
-                      !isEvmAddress(wallet)
+                      Boolean(
+                        wallet,
+                      ) &&
+                      !isEvmAddress(
+                        wallet,
+                      )
                     }
                   />
                 </Field>
 
                 {error && (
-                  <ErrorText role="alert">
+                  <ErrorText
+                    role="alert"
+                  >
                     {error}
                   </ErrorText>
                 )}
 
                 <Button
                   type="submit"
-                  disabled={!canSubmit}
+                  disabled={
+                    !canSubmit
+                  }
                 >
                   send it to glorp
                 </Button>
@@ -1127,7 +1124,9 @@ export default function Home() {
                 <UfoImage
                   src="/ringring.gif"
                   alt="Glorp calling from his spaceship"
-                  onError={(event) => {
+                  onError={(
+                    event,
+                  ) => {
                     event.currentTarget.style.display =
                       "none";
                   }}
@@ -1161,8 +1160,8 @@ export default function Home() {
               </TicketHeading>
 
               <TicketCopy>
-                post it on X. he likes
-                attention.
+                post it on X. he
+                likes attention.
               </TicketCopy>
 
               <TicketVisual>
@@ -1190,18 +1189,17 @@ export default function Home() {
               <Actions>
                 <Button
                   type="button"
-                  onClick={shareTicket}
+                  onClick={
+                    shareTicket
+                  }
                   disabled={
-                    shareBusy ||
                     ticketPreparing ||
-                    !ticketFile
+                    !shareUrl
                   }
                 >
                   {ticketPreparing
-                    ? "loading glorp..."
-                    : shareBusy
-                      ? "opening X..."
-                      : "post to X"}
+                    ? "preparing transmission..."
+                    : "post to X"}
                 </Button>
               </Actions>
 
