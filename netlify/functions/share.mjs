@@ -22,10 +22,38 @@ export default async function handler(request, context) {
 <head>
   <meta charset="UTF-8">
 
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="${imageUrl}">
+  <title>GLORP</title>
 
-  <meta property="og:image" content="${imageUrl}">
+  <!-- X -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="GLORP">
+  <meta
+    name="twitter:description"
+    content="@${handle} sent a transmission to GLORP"
+  >
+  <meta
+    name="twitter:image"
+    content="${imageUrl}"
+  >
+  <meta
+    name="twitter:image:alt"
+    content="GLORP transmission from @${handle}"
+  >
+
+  <!-- OPEN GRAPH -->
+  <meta property="og:title" content="GLORP">
+  <meta
+    property="og:description"
+    content="@${handle} sent a transmission to GLORP"
+  >
+  <meta
+    property="og:image"
+    content="${imageUrl}"
+  >
+  <meta
+    property="og:image:type"
+    content="image/png"
+  >
   <meta property="og:type" content="website">
   <meta property="og:url" content="${pageUrl}">
 </head>
@@ -39,6 +67,7 @@ export default async function handler(request, context) {
   return new Response(html, {
     headers: {
       "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "public, max-age=60",
     },
   });
 }
