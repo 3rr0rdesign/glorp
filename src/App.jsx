@@ -1112,7 +1112,7 @@ export default function Home() {
     }
 
     const text =
-      "i have sent my transmission request @glorpRBH 👽";
+  "just applied for WL @glorpRBH 😼\n\nhope glorp saved me a seat 🛸";
 
     const xUrl =
       `https://x.com/intent/tweet?text=${encodeURIComponent(
