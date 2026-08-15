@@ -23,13 +23,12 @@ const HISTORY_KEY = "glorp-screen";
    TICKET HANDLE SETTINGS
    ========================================================= */
 
-const TICKET_HANDLE_X = 58;
-const TICKET_HANDLE_Y = 63;
-const TICKET_HANDLE_ROTATION = 3;
+const TICKET_HANDLE_X = 50;
+const TICKET_HANDLE_Y = 69;
+const TICKET_HANDLE_ROTATION = 0;
 const TICKET_HANDLE_SIZE = 5.2;
-const TICKET_HANDLE_COLOR = "#347e4e";
-const TICKET_HANDLE_BLEND_MODE = "multiply";
-
+const TICKET_HANDLE_COLOR = "#baff00";
+const TICKET_HANDLE_BLEND_MODE = "screen";
 const TRANSMISSION_LINES = [
   "dialing glorp...",
   "checking if you're secretly a dog...",
@@ -314,18 +313,21 @@ const TicketCopy = styled.p`
 const TicketVisual = styled.div`
   position: relative;
   width: 100%;
-  aspect-ratio: 1 / 1;
   overflow: hidden;
+
   border: 2px solid #0a0a0a;
   border-radius: 20px;
   background: #0a0a0a;
 `;
 
 const TicketImage = styled.img`
-  width: 100%;
-  height: 100%;
+  position: relative;
   display: block;
-  object-fit: cover;
+
+  width: 100%;
+  height: auto;
+
+  object-fit: contain;
 `;
 
 const TicketFallback = styled.div`
@@ -351,10 +353,11 @@ const TicketHandle = styled.div`
   left: ${TICKET_HANDLE_X}%;
   top: ${TICKET_HANDLE_Y}%;
 
-  width: 88%;
-
-  transform: translate(-50%, -50%)
+  transform:
+    translate(-50%, -50%)
     rotate(${TICKET_HANDLE_ROTATION}deg);
+
+  width: 88%;
 
   color: ${TICKET_HANDLE_COLOR};
   mix-blend-mode: ${TICKET_HANDLE_BLEND_MODE};
@@ -367,9 +370,10 @@ const TicketHandle = styled.div`
     Arial,
     sans-serif;
 
-  font-size: clamp(17px, ${TICKET_HANDLE_SIZE}vw, 32px);
+  font-size: clamp(18px, 5vw, 30px);
   line-height: 1;
   font-weight: 900;
+
   letter-spacing: -0.035em;
 
   text-shadow: none;
@@ -418,11 +422,10 @@ function loadImage(source) {
 async function makeTicket(handle) {
   const base = await loadImage("/glorpbg.png");
 
-  const canvas = document.createElement("canvas");
+ const canvas = document.createElement("canvas");
 
-  canvas.width = base?.naturalWidth || 1200;
-  canvas.height = base?.naturalHeight || 1200;
-
+canvas.width = base?.naturalWidth || 1200;
+canvas.height = base?.naturalHeight || 600;
   const context = canvas.getContext("2d");
 
   if (!context) {
