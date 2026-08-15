@@ -241,7 +241,7 @@ Deno.serve(async (req) => {
        * into the X post.
        */
       const shareUrl =
-  `https://glorprbh.com/share/${encodeURIComponent(handle)}`;
+    `https://glorprbh.com/share/${encodeURIComponent(handle)}?v=${Date.now()}`;
 
       return Response.json(
         {
