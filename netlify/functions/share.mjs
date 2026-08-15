@@ -228,9 +228,13 @@ export default async function handler(request, context) {
 </head>
 
 <body>
+  <script>
+    window.location.replace("https://glorprbh.com");
+  </script>
 
-  GLORP
-
+  <noscript>
+    <a href="https://glorprbh.com">enter GLORP</a>
+  </noscript>
 </body>
 
 </html>
