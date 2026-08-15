@@ -1,4 +1,4 @@
-export default async function handler(req, context) {
+export default async function handler(request, context) {
   const handle = (context.params.handle || "")
     .trim()
     .replace(/^@+/, "")

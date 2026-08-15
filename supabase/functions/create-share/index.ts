@@ -241,9 +241,7 @@ Deno.serve(async (req) => {
        * into the X post.
        */
       const shareUrl =
-        `${SUPABASE_URL}/functions/v1/create-share?handle=${encodeURIComponent(
-          handle,
-        )}`;
+  `https://glorprbh.com/share/${encodeURIComponent(handle)}`;
 
       return Response.json(
         {
