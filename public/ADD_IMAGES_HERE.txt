@@ -1,0 +1,4 @@
+Put your two supplied files in this folder with these exact names:
+
+ringring.gif
+glorpbg.png
