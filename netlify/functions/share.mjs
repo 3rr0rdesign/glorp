@@ -12,55 +12,139 @@ export default async function handler(request, context) {
 
   const url = new URL(request.url);
 
-  const supabaseImage =
-    `https://zdqpxpqjpqhnnnhclwsf.supabase.co/storage/v1/object/public/glorp-shares/${handle}.png`;
-
   /*
-   * X FETCHES THE IMAGE FROM OUR DOMAIN
+   * Every generated share URL has:
    *
-   * /share/test2?image=1
+   * /share/handle?v=TIMESTAMP
+   *
+   * Keep that same version on the image URL too,
+   * so X doesn't reuse an old cached image.
    */
+  const version =
+    url.searchParams.get("v") ||
+    Date.now().toString();
+
+  const supabaseImage =
+    `https://zdqpxpqjpqhnnnhclwsf.supabase.co/storage/v1/object/public/glorp-shares/${encodeURIComponent(
+      handle
+    )}.png?v=${encodeURIComponent(version)}`;
+
+  /* =========================================================
+     IMAGE PROXY
+     =========================================================
+
+     X requests:
+
+     https://glorprbh.com/share/handle?image=1&v=TIMESTAMP
+
+     Netlify fetches the PNG from Supabase and returns
+     the image directly from glorprbh.com.
+  */
+
   if (url.searchParams.get("image") === "1") {
-    const imageResponse = await fetch(supabaseImage);
+    try {
+      const imageResponse = await fetch(
+        supabaseImage,
+        {
+          cache: "no-store",
+        }
+      );
 
-    if (!imageResponse.ok) {
-      return new Response("image not found", {
-        status: 404,
+      if (!imageResponse.ok) {
+        console.error(
+          "Supabase image fetch failed:",
+          imageResponse.status,
+          supabaseImage
+        );
+
+        return new Response(
+          "image not found",
+          {
+            status: 404,
+            headers: {
+              "Cache-Control":
+                "no-store",
+            },
+          }
+        );
+      }
+
+      const image =
+        await imageResponse.arrayBuffer();
+
+      return new Response(image, {
+        status: 200,
+
+        headers: {
+          "Content-Type": "image/png",
+
+          /*
+           * Do not cache old generated tickets.
+           */
+          "Cache-Control":
+            "no-store, no-cache, must-revalidate",
+
+          "X-Content-Type-Options":
+            "nosniff",
+        },
       });
+    } catch (error) {
+      console.error(
+        "GLORP image proxy error:",
+        error
+      );
+
+      return new Response(
+        "image unavailable",
+        {
+          status: 500,
+          headers: {
+            "Cache-Control":
+              "no-store",
+          },
+        }
+      );
     }
-
-    const image = await imageResponse.arrayBuffer();
-
-    return new Response(image, {
-      headers: {
-        "Content-Type": "image/png",
-        "Cache-Control": "public, max-age=3600",
-      },
-    });
   }
 
-  /*
-   * X CARD IMAGE
-   *
-   * Important:
-   * image now comes from glorprbh.com,
-   * not directly from Supabase.
-   */
+  /* =========================================================
+     X CARD PAGE
+     ========================================================= */
+
   const imageUrl =
-    `https://glorprbh.com/share/${encodeURIComponent(handle)}?image=1&v=3`;
+    `https://glorprbh.com/share/${encodeURIComponent(
+      handle
+    )}?image=1&v=${encodeURIComponent(
+      version
+    )}`;
 
   const pageUrl =
-    `https://glorprbh.com/share/${encodeURIComponent(handle)}`;
+    `https://glorprbh.com/share/${encodeURIComponent(
+      handle
+    )}?v=${encodeURIComponent(
+      version
+    )}`;
 
   const html = `
 <!doctype html>
 <html lang="en">
+
 <head>
+
   <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
 
   <title>GLORP</title>
 
-  <!-- X CARD -->
+
+  <!-- ==========================================
+       X / TWITTER CARD
+       ========================================== -->
+
   <meta
     name="twitter:card"
     content="summary_large_image"
@@ -91,7 +175,11 @@ export default async function handler(request, context) {
     content="GLORP transmission from @${handle}"
   >
 
-  <!-- OPEN GRAPH -->
+
+  <!-- ==========================================
+       OPEN GRAPH
+       ========================================== -->
+
   <meta
     property="og:title"
     content="GLORP"
@@ -136,25 +224,39 @@ export default async function handler(request, context) {
     property="og:url"
     content="${pageUrl}"
   >
+
 </head>
 
 <body>
+
   GLORP
+
 </body>
+
 </html>
 `;
 
   return new Response(html, {
+    status: 200,
+
     headers: {
-      "Content-Type": "text/html; charset=utf-8",
+      "Content-Type":
+        "text/html; charset=utf-8",
 
       /*
-       * Don't let Netlify/CDN keep stale card HTML.
+       * Important:
+       * don't cache failed/old card metadata.
        */
-      "Cache-Control": "no-store",
+      "Cache-Control":
+        "no-store, no-cache, must-revalidate",
     },
   });
 }
+
+
+/* =========================================================
+   NETLIFY ROUTE
+   ========================================================= */
 
 export const config = {
   path: "/share/:handle",
