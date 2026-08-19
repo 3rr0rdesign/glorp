@@ -1,46 +1,50 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import styled, { createGlobalStyle, keyframes } from "styled-components";
-
-const SUPABASE_FUNCTION_URL =
-  import.meta.env.VITE_SUPABASE_FUNCTION_URL ??
-  "https://zdqpxpqjpqhnnnhclwsf.supabase.co/functions/v1/submit-transmission";
-
-const SUPABASE_SHARE_FUNCTION_URL =
-  import.meta.env.VITE_SUPABASE_SHARE_FUNCTION_URL ??
-  "https://zdqpxpqjpqhnnnhclwsf.supabase.co/functions/v1/create-share";
-
-const STORAGE_KEY = "glorp-transmission-v1";
-const HISTORY_KEY = "glorp-screen";
+import { useEffect, useState } from "react";
+import styled, { createGlobalStyle } from "styled-components";
 
 /* =========================================================
-   TICKET HANDLE SETTINGS
+   MINT TIME
+
+   August 20, 2026
+   16:00 UTC
+
+   Date.UTC uses UTC — NOT the user's local timezone.
    ========================================================= */
 
-const TICKET_HANDLE_X = 50;
-const TICKET_HANDLE_Y = 69;
-const TICKET_HANDLE_ROTATION = 0;
-const TICKET_HANDLE_SIZE = 5.2;
-const TICKET_HANDLE_COLOR = "#baff00";
-const TICKET_HANDLE_BLEND_MODE = "screen";
-
-const TRANSMISSION_LINES = [
-  "dialing glorp...",
-  "checking if you're secretly a dog...",
-  "saving you a tiny seat...",
-];
-
+const MINT_TIME = Date.UTC(
+  2026, // year
+  7,    // August (January = 0)
+  20,   // day
+  16,   // 16:00 = 4 PM UTC
+  0,
+  0,
+);
 /* =========================================================
    GLOBAL
    ========================================================= */
 
 const GlobalStyle = createGlobalStyle`
+  @font-face {
+    font-family: "Xirod";
+    src:
+      url("/xirod.woff2") format("woff2"),
+      url("/xirod.ttf") format("truetype");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
+
   * {
     box-sizing: border-box;
   }
 
-  html {
+  html,
+  body,
+  #root {
+    margin: 0;
+    width: 100%;
+    min-height: 100%;
     background: #d8ff00;
   }
 
@@ -48,15 +52,7 @@ const GlobalStyle = createGlobalStyle`
     margin: 0;
     background: #d8ff00;
     color: #0a0a0a;
-  }
-
-  button,
-  input {
-    font: inherit;
-  }
-
-  button {
-    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
   }
 
   ::selection {
@@ -65,605 +61,177 @@ const GlobalStyle = createGlobalStyle`
   }
 `;
 
+/* =========================================================
+   PAGE
+   ========================================================= */
+
 const Page = styled.main`
+  width: 100%;
   min-height: 100svh;
-  display: grid;
-  place-items: center;
-  padding: 14px;
-  background: #d8ff00;
-  font-family: "Arial Rounded MT Bold", "Trebuchet MS", Arial, sans-serif;
 
-  @media (min-width: 700px) {
-    padding: 32px;
-  }
-`;
-
-const Shell = styled.section`
-  width: min(100%, 470px);
-`;
-
-const Topbar = styled.header`
   display: flex;
+  align-items: center;
   justify-content: center;
-  align-items: center;
-  margin-bottom: 14px;
-`;
 
-const Wordmark = styled.span`
-  font-size: 29px;
-  font-weight: 1000;
-  letter-spacing: -0.09em;
-  text-transform: lowercase;
-`;
+  padding: 32px 20px;
 
-const Card = styled.div`
-  width: 100%;
-  border: 2px solid #0a0a0a;
-  border-radius: 28px;
-  background: #fffdf3;
-  box-shadow: 5px 5px 0 #0a0a0a;
-  overflow: hidden;
-`;
-
-const FormCard = styled(Card)`
-  padding: 28px 20px 22px;
-
-  @media (min-width: 700px) {
-    padding: 36px 32px 30px;
-  }
-`;
-
-const Title = styled.h1`
-  margin: 0;
-  font-size: clamp(34px, 9.5vw, 46px);
-  line-height: 0.95;
-  letter-spacing: -0.065em;
-  font-weight: 1000;
-`;
-
-const Copy = styled.p`
-  margin: 13px 0 26px;
-  font-size: 16px;
-  line-height: 1.35;
-  font-weight: 700;
-`;
-
-const Form = styled.form`
-  display: grid;
-  gap: 14px;
-`;
-
-const Field = styled.label`
-  display: grid;
-  gap: 7px;
-  font-size: 13px;
-  font-weight: 900;
-`;
-
-const InputWrap = styled.div`
-  position: relative;
-`;
-
-const Prefix = styled.span`
-  position: absolute;
-  left: 16px;
-  top: 50%;
-  translate: 0 -50%;
-  font-size: 16px;
-  font-weight: 900;
-`;
-
-const Input = styled.input`
-  width: 100%;
-  min-height: 56px;
-
-  padding: ${({ $prefixed }) =>
-    $prefixed ? "0 16px 0 36px" : "0 16px"};
-
-  border: 2px solid #0a0a0a;
-  border-radius: 16px;
-  outline: none;
-
-  background: #fff;
+  background: #d8ff00;
   color: #0a0a0a;
 
-  font-size: 16px;
-  font-weight: 700;
+  font-family: "Xirod", Arial, sans-serif;
 
-  &::placeholder {
-    color: #99978d;
-  }
-
-  &:focus {
-    box-shadow: 0 0 0 3px #d8ff00;
+  @media (max-width: 600px) {
+    padding: 24px 14px;
   }
 `;
 
-const Button = styled.button`
+const Content = styled.section`
   width: 100%;
-  min-height: 56px;
-
-  border: 2px solid #0a0a0a;
-  border-radius: 16px;
-
-  background: #0a0a0a;
-  color: #d8ff00;
-
-  cursor: pointer;
-
-  font-size: 16px;
-  font-weight: 1000;
-
-  transition:
-    translate 120ms ease,
-    box-shadow 120ms ease,
-    opacity 120ms ease;
-
-  &:hover:not(:disabled) {
-    translate: 0 -2px;
-    box-shadow: 0 4px 0 #6a7600;
-  }
-
-  &:active:not(:disabled) {
-    translate: 0 1px;
-    box-shadow: none;
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.34;
-  }
-`;
-
-const BackButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-
-  margin: 0 0 12px;
-  padding: 0;
-
-  border: 0;
-  background: transparent;
-  color: #0a0a0a;
-
-  cursor: pointer;
-
-  font-size: 15px;
-  line-height: 1;
-  font-weight: 900;
-
-  &:hover {
-    opacity: 0.6;
-  }
-`;
-
-const ErrorText = styled.p`
-  margin: -2px 0 0;
-  color: #b42318;
-  font-size: 13px;
-  line-height: 1.35;
-  font-weight: 800;
-`;
-
-const loadBar = keyframes`
-  from {
-    transform: scaleX(0);
-  }
-
-  to {
-    transform: scaleX(1);
-  }
-`;
-
-const TransmittingCard = styled(Card)`
-  min-height: min(68svh, 570px);
+  max-width: 1200px;
 
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-
-  gap: 24px;
-
-  padding: 24px 20px 22px;
-`;
-
-const UfoStage = styled.div`
-  position: relative;
-
-  width: 100%;
-  aspect-ratio: 1 / 1;
-
-  display: grid;
-  place-items: center;
-
-  overflow: hidden;
-
-  border: 2px solid #0a0a0a;
-  border-radius: 22px;
-
-  background: #efffa8;
-`;
-
-const UfoImage = styled.img`
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-
-  display: block;
-
-  width: 100%;
-  height: 100%;
-
-  object-fit: cover;
-  object-position: center;
-`;
-
-const TransmittingTitle = styled.h1`
-  min-height: 2.2em;
-
-  margin: 0 0 14px;
-
-  font-size: clamp(27px, 8vw, 38px);
-  line-height: 1.05;
-  letter-spacing: -0.045em;
-  font-weight: 1000;
+  align-items: center;
+  justify-content: center;
 
   text-align: center;
 `;
 
-const ProgressTrack = styled.div`
-  height: 10px;
+/* =========================================================
+   TITLE
+   ========================================================= */
 
-  border: 2px solid #0a0a0a;
-  border-radius: 999px;
+const Title = styled.h1`
+  margin: 0 0 46px;
 
-  overflow: hidden;
+  font-family: "Xirod", Arial, sans-serif;
+  font-size: clamp(30px, 5vw, 72px);
+  font-weight: normal;
+  line-height: 1;
 
-  background: #fff;
-`;
+  text-transform: lowercase;
 
-const Progress = styled.div`
-  width: 100%;
-  height: 100%;
-
-  transform-origin: left center;
-
-  background: #d8ff00;
-
-  animation: ${loadBar} 3s linear forwards;
-`;
-
-const TicketCard = styled(Card)`
-  padding: 24px 18px 18px;
-
-  @media (min-width: 700px) {
-    padding: 30px 26px 24px;
+  @media (max-width: 600px) {
+    margin-bottom: 32px;
+    font-size: clamp(27px, 9vw, 42px);
   }
 `;
 
-const TicketHeading = styled.h1`
-  margin: 0;
+/* =========================================================
+   COUNTDOWN
+   ========================================================= */
 
-  font-size: clamp(36px, 10vw, 48px);
-  line-height: 0.95;
-  letter-spacing: -0.055em;
-  font-weight: 1000;
-`;
-
-const TicketCopy = styled.p`
-  margin: 10px 0 18px;
-
-  font-size: 15px;
-  line-height: 1.35;
-  font-weight: 700;
-`;
-
-const TicketVisual = styled.div`
-  position: relative;
-
+const Countdown = styled.div`
   width: 100%;
-
-  overflow: hidden;
-
-  border: 2px solid #0a0a0a;
-  border-radius: 20px;
-
-  background: #0a0a0a;
-`;
-
-const TicketImage = styled.img`
-  position: relative;
-
-  display: block;
-
-  width: 100%;
-  height: auto;
-
-  object-fit: contain;
-`;
-
-const TicketFallback = styled.div`
-  position: absolute;
-  inset: 0;
 
   display: grid;
-  place-items: center;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 
-  padding: 24px;
+  gap: clamp(10px, 2vw, 28px);
 
-  background: #d8ff00;
-  color: #0a0a0a;
+  @media (max-width: 600px) {
+    gap: 7px;
+  }
+`;
 
-  text-align: center;
+const TimeBlock = styled.div`
+  min-width: 0;
 
-  font-size: clamp(36px, 11vw, 72px);
-  line-height: 0.86;
-  font-weight: 1000;
-  letter-spacing: -0.07em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const Number = styled.div`
+  width: 100%;
+
+  font-family: "Xirod", Arial, sans-serif;
+
+  font-size: clamp(43px, 9vw, 120px);
+  line-height: 0.95;
+  font-weight: normal;
+
+  white-space: nowrap;
+  letter-spacing: -0.04em;
+
+  @media (max-width: 600px) {
+    font-size: clamp(34px, 12vw, 58px);
+  }
+
+  @media (max-width: 390px) {
+    font-size: clamp(28px, 11vw, 46px);
+  }
+`;
+
+const Label = styled.div`
+  margin-top: 15px;
+
+  font-family: "Xirod", Arial, sans-serif;
+
+  font-size: clamp(8px, 1.15vw, 15px);
+  line-height: 1;
 
   text-transform: uppercase;
+
+  @media (max-width: 600px) {
+    margin-top: 10px;
+    font-size: 7px;
+  }
 `;
 
-const TicketHandle = styled.div`
-  position: absolute;
-  z-index: 2;
+/* =========================================================
+   MINT LIVE STATE
+   ========================================================= */
 
-  left: ${TICKET_HANDLE_X}%;
-  top: ${TICKET_HANDLE_Y}%;
+const MintingNow = styled.div`
+  font-family: "Xirod", Arial, sans-serif;
 
-  transform:
-    translate(-50%, -50%)
-    rotate(${TICKET_HANDLE_ROTATION}deg);
-
-  width: 88%;
-
-  color: ${TICKET_HANDLE_COLOR};
-
-  mix-blend-mode: ${TICKET_HANDLE_BLEND_MODE};
+  font-size: clamp(42px, 9vw, 120px);
+  line-height: 1;
 
   text-align: center;
-
-  font-family:
-    "Arial Rounded MT Bold",
-    "Trebuchet MS",
-    Arial,
-    sans-serif;
-
-  font-size: clamp(18px, 5vw, 30px);
-  line-height: 1;
-  font-weight: 900;
-
-  letter-spacing: -0.035em;
-
-  text-shadow: none;
-
-  overflow-wrap: anywhere;
-`;
-
-const Actions = styled.div`
-  display: grid;
-  gap: 8px;
-
-  margin-top: 14px;
+  text-transform: lowercase;
 `;
 
 /* =========================================================
    HELPERS
    ========================================================= */
 
-const sleep = (ms) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
+function calculateTimeLeft() {
+  const now = Date.now();
 
-const cleanHandle = (value) =>
-  value
-    .trim()
-    .replace(/^@+/, "")
-    .toLowerCase();
-
-function isEvmAddress(value) {
-  return /^0x[a-fA-F0-9]{40}$/.test(value.trim());
-}
-
-function isXHandle(value) {
-  return /^[a-zA-Z0-9_]{1,15}$/.test(
-    cleanHandle(value),
-  );
-}
-
-function loadImage(source) {
-  return new Promise((resolve) => {
-    const image = new Image();
-
-    image.onload = () => resolve(image);
-    image.onerror = () => resolve(null);
-
-    image.src = source;
-  });
-}
-
-/* =========================================================
-   GENERATE FINAL TICKET IMAGE
-   ========================================================= */
-
-async function makeTicket(handle) {
-  const base =
-    await loadImage("/glorpbg-v2.png");
-
-  const canvas =
-    document.createElement("canvas");
-
-  canvas.width =
-    base?.naturalWidth || 1200;
-
-  canvas.height =
-    base?.naturalHeight || 600;
-
-  const context =
-    canvas.getContext("2d");
-
-  if (!context) {
-    throw new Error(
-      "Your browser could not build the ticket.",
-    );
-  }
-
-  if (base) {
-    context.drawImage(
-      base,
-      0,
-      0,
-      canvas.width,
-      canvas.height,
-    );
-  } else {
-    context.fillStyle = "#d8ff00";
-
-    context.fillRect(
-      0,
-      0,
-      canvas.width,
-      canvas.height,
-    );
-
-    context.fillStyle = "#0a0a0a";
-    context.textAlign = "center";
-    context.textBaseline = "middle";
-
-    context.font =
-      `900 ${Math.round(
-        canvas.width * 0.095,
-      )}px Arial`;
-
-    context.fillText(
-      "GLORP TICKET",
-      canvas.width / 2,
-      canvas.height * 0.42,
-    );
-  }
-
-  const fontSize =
-    Math.round(
-      canvas.width *
-        (TICKET_HANDLE_SIZE / 100),
-    );
-
-  context.textAlign = "center";
-  context.textBaseline = "middle";
-
-  context.font =
-    `900 ${fontSize}px "Arial Rounded MT Bold", "Trebuchet MS", Arial, sans-serif`;
-
-  context.fillStyle =
-    TICKET_HANDLE_COLOR;
-
-  context.save();
-
-  context.globalCompositeOperation =
-    TICKET_HANDLE_BLEND_MODE;
-
-  context.translate(
-    canvas.width *
-      (TICKET_HANDLE_X / 100),
-
-    canvas.height *
-      (TICKET_HANDLE_Y / 100),
-  );
-
-  context.rotate(
-    TICKET_HANDLE_ROTATION *
-      (Math.PI / 180),
-  );
-
-  context.fillText(
-    `@${handle}`,
+  const difference = Math.max(
     0,
-    0,
+    MINT_TIME - now,
   );
 
-  context.restore();
-
-  return new Promise(
-    (resolve, reject) => {
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            reject(
-              new Error(
-                "Your ticket could not be exported.",
-              ),
-            );
-
-            return;
-          }
-
-          resolve(
-            new File(
-              [blob],
-              `glorp-ticket-${handle}.png`,
-              {
-                type: "image/png",
-              },
-            ),
-          );
-        },
-
-        "image/png",
-        1,
-      );
-    },
+  const days = Math.floor(
+    difference / (1000 * 60 * 60 * 24),
   );
+
+  const hours = Math.floor(
+    (difference / (1000 * 60 * 60)) % 24,
+  );
+
+  const minutes = Math.floor(
+    (difference / (1000 * 60)) % 60,
+  );
+
+  const seconds = Math.floor(
+    (difference / 1000) % 60,
+  );
+
+  return {
+    difference,
+    days,
+    hours,
+    minutes,
+    seconds,
+  };
 }
 
-/* =========================================================
-   CREATE PUBLIC X SHARE PAGE
-   ========================================================= */
-
-async function createSharePage(
-  handle,
-  ticketFile,
-) {
-  const formData =
-    new FormData();
-
-  formData.append(
-    "handle",
-    handle,
-  );
-
-  formData.append(
-    "image",
-    ticketFile,
-  );
-
-  const response =
-    await fetch(
-      SUPABASE_SHARE_FUNCTION_URL,
-      {
-        method: "POST",
-        body: formData,
-      },
-    );
-
-  const body =
-    await response
-      .json()
-      .catch(() => ({}));
-
-  if (!response.ok) {
-    throw new Error(
-      body.message ||
-        "could not prepare your X post.",
-    );
-  }
-
-  if (!body.shareUrl) {
-    throw new Error(
-      "share page URL was not returned.",
-    );
-  }
-
-  return body.shareUrl;
+function formatTime(number) {
+  return String(number).padStart(2, "0");
 }
 
 /* =========================================================
@@ -671,721 +239,93 @@ async function createSharePage(
    ========================================================= */
 
 export default function Home() {
-  const [
-    screen,
-    setScreen,
-  ] = useState("form");
-
-  const [
-    wallet,
-    setWallet,
-  ] = useState("");
-
-  const [
-    handle,
-    setHandle,
-  ] = useState("");
-
-  const [
-    confirmedHandle,
-    setConfirmedHandle,
-  ] = useState("");
-
-  const [
-    error,
-    setError,
-  ] = useState("");
-
-  const [
-    imageMissing,
-    setImageMissing,
-  ] = useState(false);
-
-  const [
-    transmissionLine,
-    setTransmissionLine,
-  ] = useState(0);
-
-  const [
-    shareUrl,
-    setShareUrl,
-  ] = useState("");
-
-  const [
-    ticketPreparing,
-    setTicketPreparing,
-  ] = useState(false);
-
-  /* =========================================================
-     HISTORY
-     ========================================================= */
+  const [timeLeft, setTimeLeft] = useState(
+    calculateTimeLeft,
+  );
 
   useEffect(() => {
-    const currentState =
-      window.history.state ?? {};
+    const updateCountdown = () => {
+      setTimeLeft(calculateTimeLeft());
+    };
 
-    const currentScreen =
-      currentState[HISTORY_KEY];
+    updateCountdown();
 
-    if (
-      currentScreen !== "form" &&
-      currentScreen !== "ticket"
-    ) {
-      window.history.replaceState(
-        {
-          ...currentState,
-          [HISTORY_KEY]: "form",
-        },
-        "",
-      );
-    }
-
-    function handlePopState(event) {
-      const nextScreen =
-        event.state?.[
-          HISTORY_KEY
-        ] === "ticket"
-          ? "ticket"
-          : "form";
-
-      setScreen(nextScreen);
-      setError("");
-
-      if (nextScreen === "form") {
-        setWallet("");
-        setHandle("");
-        setShareUrl("");
-      }
-    }
-
-    window.addEventListener(
-      "popstate",
-      handlePopState,
+    const interval = window.setInterval(
+      updateCountdown,
+      1000,
     );
-
-    return () =>
-      window.removeEventListener(
-        "popstate",
-        handlePopState,
-      );
-  }, []);
-
-  /* =========================================================
-     TRANSMISSION TEXT
-     ========================================================= */
-
-  useEffect(() => {
-    if (
-      screen !== "transmitting"
-    ) {
-      return undefined;
-    }
-
-    const timer =
-      window.setInterval(() => {
-        setTransmissionLine(
-          (current) =>
-            Math.min(
-              current + 1,
-              TRANSMISSION_LINES.length -
-                1,
-            ),
-        );
-      }, 950);
-
-    return () =>
-      window.clearInterval(timer);
-  }, [screen]);
-
-  /* =========================================================
-     EXISTING LOCAL TICKET
-     ========================================================= */
-
-  useEffect(() => {
-    const saved =
-      localStorage.getItem(
-        STORAGE_KEY,
-      );
-
-    if (!saved) return;
-
-    try {
-      const parsed =
-        JSON.parse(saved);
-
-      if (
-        parsed.handle &&
-        isXHandle(parsed.handle)
-      ) {
-        const savedHandle =
-          cleanHandle(
-            parsed.handle,
-          );
-
-        queueMicrotask(() => {
-          setConfirmedHandle(
-            savedHandle,
-          );
-
-          if (
-            window.history.state?.[
-              HISTORY_KEY
-            ] !== "ticket"
-          ) {
-            window.history.pushState(
-              {
-                ...(window.history
-                  .state ?? {}),
-
-                [HISTORY_KEY]:
-                  "ticket",
-              },
-              "",
-            );
-          }
-
-          setScreen("ticket");
-        });
-      }
-    } catch {
-      localStorage.removeItem(
-        STORAGE_KEY,
-      );
-    }
-  }, []);
-
-  /* =========================================================
-     BUILD IMAGE + SHARE PAGE
-     ========================================================= */
-
-  useEffect(() => {
-    if (
-      screen !== "ticket" ||
-      !confirmedHandle
-    ) {
-      return undefined;
-    }
-
-    let cancelled = false;
-
-    setShareUrl("");
-    setTicketPreparing(true);
-
-    async function prepareShare() {
-      try {
-        const ticket =
-          await makeTicket(
-            confirmedHandle,
-          );
-
-        if (cancelled) return;
-
-        const newShareUrl =
-          await createSharePage(
-            confirmedHandle,
-            ticket,
-          );
-
-        if (cancelled) return;
-
-        setShareUrl(
-          newShareUrl,
-        );
-      } catch (caught) {
-        if (cancelled) return;
-
-        setError(
-          caught instanceof Error
-            ? caught.message
-            : "could not prepare your X post.",
-        );
-      } finally {
-        if (!cancelled) {
-          setTicketPreparing(
-            false,
-          );
-        }
-      }
-    }
-
-    prepareShare();
 
     return () => {
-      cancelled = true;
+      window.clearInterval(interval);
     };
-  }, [
-    screen,
-    confirmedHandle,
-  ]);
+  }, []);
 
-  /* =========================================================
-     FORM VALIDATION
-     ========================================================= */
-
-  const normalizedHandle =
-    useMemo(
-      () =>
-        cleanHandle(handle),
-      [handle],
-    );
-
-  const canSubmit =
-    isXHandle(
-      normalizedHandle,
-    ) &&
-    isEvmAddress(wallet);
-
-  /* =========================================================
-     SUBMIT TRANSMISSION
-     ========================================================= */
-
-  async function submitTransmission(
-    event,
-  ) {
-    event.preventDefault();
-
-    setError("");
-
-    if (!canSubmit) {
-      setError(
-        "add a real X handle and EVM wallet.",
-      );
-
-      return;
-    }
-
-    setTransmissionLine(0);
-    setScreen("transmitting");
-
-    try {
-      const request =
-        fetch(
-          SUPABASE_FUNCTION_URL,
-          {
-            method: "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-
-            body: JSON.stringify({
-              wallet: wallet
-                .trim()
-                .toLowerCase(),
-
-              twitterHandle:
-                normalizedHandle,
-            }),
-          },
-        );
-
-      const [response] =
-        await Promise.all([
-          request,
-          sleep(3000),
-        ]);
-
-      const body =
-        await response
-          .json()
-          .catch(() => ({}));
-
-      if (!response.ok) {
-        if (
-          response.status ===
-            409 &&
-          body.code ===
-            "TWITTER_EXISTS"
-        ) {
-          throw new Error(
-            "that X account already sent a signal.",
-          );
-        }
-
-        if (
-          response.status === 409
-        ) {
-          throw new Error(
-            "that wallet already sent a signal.",
-          );
-        }
-
-        throw new Error(
-          body.message ||
-            "glorp lost the signal. try again.",
-        );
-      }
-
-      localStorage.setItem(
-        STORAGE_KEY,
-
-        JSON.stringify({
-          handle:
-            normalizedHandle,
-        }),
-      );
-
-      setConfirmedHandle(
-        normalizedHandle,
-      );
-
-      setImageMissing(false);
-
-      if (
-        window.history.state?.[
-          HISTORY_KEY
-        ] !== "ticket"
-      ) {
-        window.history.pushState(
-          {
-            ...(window.history
-              .state ?? {}),
-
-            [HISTORY_KEY]:
-              "ticket",
-          },
-          "",
-        );
-      }
-
-      setScreen("ticket");
-    } catch (caught) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : "glorp lost the signal. try again.",
-      );
-
-      setScreen("form");
-    }
-  }
-
-  /* =========================================================
-     BACK / RESET
-     ========================================================= */
-
-  function goBackToForm() {
-    /*
-     * Important:
-     * remove the stored ticket so a fresh visit
-     * doesn't immediately reopen the ticket screen.
-     */
-    localStorage.removeItem(
-      STORAGE_KEY,
-    );
-
-    setConfirmedHandle("");
-    setHandle("");
-    setWallet("");
-    setShareUrl("");
-    setError("");
-    setImageMissing(false);
-    setTransmissionLine(0);
-    setTicketPreparing(false);
-
-    window.history.replaceState(
-      {
-        ...(window.history.state ??
-          {}),
-
-        [HISTORY_KEY]: "form",
-      },
-      "",
-    );
-
-    setScreen("form");
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  }
-
-  /* =========================================================
-     ONE BUTTON X SHARE
-     ========================================================= */
-
-  function shareTicket() {
-    if (!shareUrl) {
-      return;
-    }
-
-    const text =
-  "just applied for WL @glorpRBH 😼\n\nhope glorp saved me a seat 🛸";
-
-    const xUrl =
-      `https://x.com/intent/tweet?text=${encodeURIComponent(
-        text,
-      )}&url=${encodeURIComponent(
-        shareUrl,
-      )}`;
-
-    window.location.href =
-      xUrl;
-  }
-
-  /* =========================================================
-     UI
-     ========================================================= */
+  const mintIsLive =
+    timeLeft.difference <= 0;
 
   return (
     <>
       <GlobalStyle />
 
       <Page>
-        <Shell>
-          <Topbar>
-            <Wordmark />
-          </Topbar>
-
-          {/* FORM */}
-
-          {screen === "form" && (
-            <FormCard>
+        <Content>
+          {!mintIsLive ? (
+            <>
               <Title>
-                glorp wants you to
-                join his spaceship
+                minting in:
               </Title>
 
-              <Copy>
-                send your X and
-                wallet. he will
-                think about it.
-              </Copy>
-
-              <Form
-                onSubmit={
-                  submitTransmission
-                }
-                noValidate
+              <Countdown
+                aria-label="Countdown until mint"
+                aria-live="polite"
               >
-                <Field>
-                  your X
+                <TimeBlock>
+                  <Number>
+                    {formatTime(timeLeft.days)}
+                  </Number>
 
-                  <InputWrap>
-                    <Prefix>
-                      @
-                    </Prefix>
+                  <Label>
+                    days
+                  </Label>
+                </TimeBlock>
 
-                    <Input
-                      $prefixed
-                      name="twitterHandle"
-                      value={handle}
+                <TimeBlock>
+                  <Number>
+                    {formatTime(timeLeft.hours)}
+                  </Number>
 
-                      onChange={(
-                        event,
-                      ) =>
-                        setHandle(
-                          event.target
-                            .value,
-                        )
-                      }
+                  <Label>
+                    hours
+                  </Label>
+                </TimeBlock>
 
-                      placeholder="yourhandle"
+                <TimeBlock>
+                  <Number>
+                    {formatTime(timeLeft.minutes)}
+                  </Number>
 
-                      autoCapitalize="none"
-                      autoCorrect="off"
+                  <Label>
+                    minutes
+                  </Label>
+                </TimeBlock>
 
-                      spellCheck={
-                        false
-                      }
+                <TimeBlock>
+                  <Number>
+                    {formatTime(timeLeft.seconds)}
+                  </Number>
 
-                      maxLength={16}
-
-                      aria-invalid={
-                        Boolean(
-                          handle,
-                        ) &&
-                        !isXHandle(
-                          handle,
-                        )
-                      }
-                    />
-                  </InputWrap>
-                </Field>
-
-                <Field>
-                  your wallet
-
-                  <Input
-                    name="wallet"
-
-                    value={wallet}
-
-                    onChange={(
-                      event,
-                    ) =>
-                      setWallet(
-                        event.target
-                          .value,
-                      )
-                    }
-
-                    placeholder="0x..."
-
-                    autoCapitalize="none"
-                    autoCorrect="off"
-
-                    spellCheck={
-                      false
-                    }
-
-                    maxLength={42}
-
-                    aria-invalid={
-                      Boolean(
-                        wallet,
-                      ) &&
-                      !isEvmAddress(
-                        wallet,
-                      )
-                    }
-                  />
-                </Field>
-
-                {error && (
-                  <ErrorText
-                    role="alert"
-                  >
-                    {error}
-                  </ErrorText>
-                )}
-
-                <Button
-                  type="submit"
-                  disabled={
-                    !canSubmit
-                  }
-                >
-                  send it to glorp
-                </Button>
-              </Form>
-            </FormCard>
+                  <Label>
+                    seconds
+                  </Label>
+                </TimeBlock>
+              </Countdown>
+            </>
+          ) : (
+            <MintingNow>
+              minting now
+            </MintingNow>
           )}
-
-          {/* TRANSMITTING */}
-
-          {screen ===
-            "transmitting" && (
-            <TransmittingCard
-              aria-live="polite"
-            >
-              <UfoStage>
-                <UfoImage
-                  src="/ringring.gif"
-
-                  alt="Glorp calling from his spaceship"
-
-                  onError={(
-                    event,
-                  ) => {
-                    event.currentTarget.style.display =
-                      "none";
-                  }}
-                />
-              </UfoStage>
-
-              <div>
-                <TransmittingTitle>
-                  {
-                    TRANSMISSION_LINES[
-                      transmissionLine
-                    ]
-                  }
-                </TransmittingTitle>
-
-                <ProgressTrack
-                  aria-hidden="true"
-                >
-                  <Progress />
-                </ProgressTrack>
-              </div>
-            </TransmittingCard>
-          )}
-
-          {/* FINAL TICKET */}
-
-          {screen === "ticket" && (
-            <TicketCard>
-
-              {/* NEW BACK BUTTON */}
-
-              <BackButton
-                type="button"
-                onClick={
-                  goBackToForm
-                }
-              >
-                ← back
-              </BackButton>
-
-              <TicketHeading>
-                glorp said maybe.
-              </TicketHeading>
-
-              <TicketCopy>
-                post it on X. he
-                likes attention.
-              </TicketCopy>
-
-              <TicketVisual>
-                {imageMissing ? (
-                  <TicketFallback>
-                    Glorp ticket
-                  </TicketFallback>
-                ) : (
-                  <TicketImage
-                    src="/glorpbg-v2.png"
-
-                    alt={`GLORP ticket for @${confirmedHandle}`}
-
-                    onError={() =>
-                      setImageMissing(
-                        true,
-                      )
-                    }
-                  />
-                )}
-
-                <TicketHandle>
-                  @{confirmedHandle}
-                </TicketHandle>
-              </TicketVisual>
-
-              <Actions>
-                <Button
-                  type="button"
-
-                  onClick={
-                    shareTicket
-                  }
-
-                  disabled={
-                    ticketPreparing ||
-                    !shareUrl
-                  }
-                >
-                  {ticketPreparing
-                    ? "preparing transmission..."
-                    : "post to X"}
-                </Button>
-              </Actions>
-
-              {error && (
-                <ErrorText
-                  role="alert"
-
-                  style={{
-                    marginTop: 12,
-                  }}
-                >
-                  {error}
-                </ErrorText>
-              )}
-            </TicketCard>
-          )}
-        </Shell>
+        </Content>
       </Page>
     </>
   );
