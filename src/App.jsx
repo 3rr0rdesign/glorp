@@ -7,9 +7,10 @@ import styled, { createGlobalStyle } from "styled-components";
    MINT TIME
 
    August 20, 2026
-   16:00 UTC
+   16:00 UTC / 4:00 PM UTC
 
-   Date.UTC uses UTC — NOT the user's local timezone.
+   This is one fixed worldwide moment.
+   Every device counts down to the same timestamp.
    ========================================================= */
 
 const MINT_TIME = Date.UTC(
@@ -20,21 +21,12 @@ const MINT_TIME = Date.UTC(
   0,
   0,
 );
+
 /* =========================================================
    GLOBAL
    ========================================================= */
 
 const GlobalStyle = createGlobalStyle`
-  @font-face {
-    font-family: "Xirod";
-    src:
-      url("/xirod.woff2") format("woff2"),
-      url("/xirod.ttf") format("truetype");
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-  }
-
   * {
     box-sizing: border-box;
   }
@@ -53,6 +45,12 @@ const GlobalStyle = createGlobalStyle`
     background: #d8ff00;
     color: #0a0a0a;
     overflow-x: hidden;
+
+    font-family: "Xirod", Arial, sans-serif;
+    font-weight: 400;
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   ::selection {
@@ -67,6 +65,7 @@ const GlobalStyle = createGlobalStyle`
 
 const Page = styled.main`
   width: 100%;
+  min-height: 100vh;
   min-height: 100svh;
 
   display: flex;
@@ -79,9 +78,10 @@ const Page = styled.main`
   color: #0a0a0a;
 
   font-family: "Xirod", Arial, sans-serif;
+  font-weight: 400;
 
   @media (max-width: 600px) {
-    padding: 24px 14px;
+    padding: 24px 12px;
   }
 `;
 
@@ -106,14 +106,18 @@ const Title = styled.h1`
 
   font-family: "Xirod", Arial, sans-serif;
   font-size: clamp(30px, 5vw, 72px);
-  font-weight: normal;
+  font-weight: 400;
   line-height: 1;
 
   text-transform: lowercase;
 
   @media (max-width: 600px) {
     margin-bottom: 32px;
-    font-size: clamp(27px, 9vw, 42px);
+    font-size: clamp(26px, 8vw, 42px);
+  }
+
+  @media (max-width: 390px) {
+    font-size: 25px;
   }
 `;
 
@@ -130,7 +134,11 @@ const Countdown = styled.div`
   gap: clamp(10px, 2vw, 28px);
 
   @media (max-width: 600px) {
-    gap: 7px;
+    gap: 6px;
+  }
+
+  @media (max-width: 390px) {
+    gap: 3px;
   }
 `;
 
@@ -146,20 +154,20 @@ const Number = styled.div`
   width: 100%;
 
   font-family: "Xirod", Arial, sans-serif;
+  font-weight: 400;
 
   font-size: clamp(43px, 9vw, 120px);
   line-height: 0.95;
-  font-weight: normal;
 
   white-space: nowrap;
   letter-spacing: -0.04em;
 
   @media (max-width: 600px) {
-    font-size: clamp(34px, 12vw, 58px);
+    font-size: clamp(30px, 11vw, 54px);
   }
 
   @media (max-width: 390px) {
-    font-size: clamp(28px, 11vw, 46px);
+    font-size: clamp(25px, 10vw, 40px);
   }
 `;
 
@@ -167,6 +175,7 @@ const Label = styled.div`
   margin-top: 15px;
 
   font-family: "Xirod", Arial, sans-serif;
+  font-weight: 400;
 
   font-size: clamp(8px, 1.15vw, 15px);
   line-height: 1;
@@ -177,6 +186,10 @@ const Label = styled.div`
     margin-top: 10px;
     font-size: 7px;
   }
+
+  @media (max-width: 390px) {
+    font-size: 6px;
+  }
 `;
 
 /* =========================================================
@@ -185,16 +198,21 @@ const Label = styled.div`
 
 const MintingNow = styled.div`
   font-family: "Xirod", Arial, sans-serif;
+  font-weight: 400;
 
   font-size: clamp(42px, 9vw, 120px);
   line-height: 1;
 
   text-align: center;
   text-transform: lowercase;
+
+  @media (max-width: 600px) {
+    font-size: clamp(30px, 10vw, 60px);
+  }
 `;
 
 /* =========================================================
-   HELPERS
+   COUNTDOWN HELPERS
    ========================================================= */
 
 function calculateTimeLeft() {
@@ -277,7 +295,6 @@ export default function Home() {
 
               <Countdown
                 aria-label="Countdown until mint"
-                aria-live="polite"
               >
                 <TimeBlock>
                   <Number>
